@@ -1,10 +1,10 @@
-
 import 'package:dartz/dartz.dart';
 import 'package:flutter_clean_architecture/core/error/exceptions.dart';
 import 'package:flutter_clean_architecture/core/error/failure.dart';
-import 'package:flutter_clean_architecture/core/platform/network_info.dart';
+import 'package:flutter_clean_architecture/core/network/network_info.dart';
 import 'package:flutter_clean_architecture/features/number_trivia/data/datasource/number_trivia_local_data_source.dart';
 import 'package:flutter_clean_architecture/features/number_trivia/data/datasource/number_trivia_remote_data_source.dart';
+import 'package:flutter_clean_architecture/features/number_trivia/data/models/number_trivia_model.dart';
 import 'package:flutter_clean_architecture/features/number_trivia/domain/entities/number_trivia.dart';
 import 'package:flutter_clean_architecture/features/number_trivia/domain/repositories/number_trivia_repository.dart';
 
@@ -12,7 +12,7 @@ class NumberTriviaRepositoryImpl implements NumberTriviaRepository {
 
   final NumberTriviaRemoteDataSource numberTriviaRemoteDataSource;
   final NumberTriviaLocalDataSource numberTriviaLocalDataSource;
-  final NetWorkInfo netWorkInfo;
+  final NetworkInfo netWorkInfo;
 
   NumberTriviaRepositoryImpl ({required this.numberTriviaRemoteDataSource,
       required this.numberTriviaLocalDataSource, required this.netWorkInfo});
@@ -51,7 +51,7 @@ class NumberTriviaRepositoryImpl implements NumberTriviaRepository {
   Future<Either<Failure, NumberTrivia?>> getRemoteSourceData(Future<NumberTrivia?>? Function() getConcreteOrRandomTrivia) async {
     try {
       final triviaModel = await getConcreteOrRandomTrivia();
-      numberTriviaLocalDataSource.cacheNumberTrivia(triviaModel);
+      numberTriviaLocalDataSource.cacheNumberTrivia(triviaModel as NumberTriviaModel?);
       return Right(triviaModel);
     } on ServerException {
       return Left(ServerFailure());

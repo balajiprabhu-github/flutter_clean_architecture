@@ -1,6 +1,6 @@
 import 'package:flutter_clean_architecture/core/error/exceptions.dart';
 import 'package:flutter_clean_architecture/core/error/failure.dart';
-import 'package:flutter_clean_architecture/core/platform/network_info.dart';
+import 'package:flutter_clean_architecture/core/network/network_info.dart';
 import 'package:flutter_clean_architecture/features/number_trivia/data/datasource/number_trivia_local_data_source.dart';
 import 'package:flutter_clean_architecture/features/number_trivia/data/datasource/number_trivia_remote_data_source.dart';
 import 'package:flutter_clean_architecture/features/number_trivia/data/models/number_trivia_model.dart';
@@ -15,9 +15,9 @@ class MockRemoteDataSource extends Mock implements NumberTriviaRemoteDataSource 
 
 class MockLocalDataSource extends Mock implements NumberTriviaLocalDataSource {}
 
-class MockNetWorkInfo extends Mock implements NetWorkInfo {}
+class MockNetWorkInfo extends Mock implements NetworkInfo {}
 
-@GenerateMocks([NumberTriviaRemoteDataSource,NumberTriviaLocalDataSource,NetWorkInfo])
+@GenerateMocks([NumberTriviaRemoteDataSource,NumberTriviaLocalDataSource,NetworkInfo])
 void main() {
 
   late NumberTriviaRepositoryImpl repository;
