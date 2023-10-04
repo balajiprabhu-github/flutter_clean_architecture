@@ -5,11 +5,9 @@ import 'package:flutter_clean_architecture/features/number_trivia/data/datasourc
 import 'package:flutter_clean_architecture/features/number_trivia/data/datasource/number_trivia_remote_data_source.dart';
 import 'package:flutter_clean_architecture/features/number_trivia/data/models/number_trivia_model.dart';
 import 'package:flutter_clean_architecture/features/number_trivia/data/repositories/number_trivia_repository_impl.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dartz/dartz.dart';
-
+import 'package:mocktail/mocktail.dart';
 
 class MockRemoteDataSource extends Mock implements NumberTriviaRemoteDataSource {}
 
@@ -17,7 +15,6 @@ class MockLocalDataSource extends Mock implements NumberTriviaLocalDataSource {}
 
 class MockNetWorkInfo extends Mock implements NetworkInfo {}
 
-@GenerateMocks([NumberTriviaRemoteDataSource,NumberTriviaLocalDataSource,NetworkInfo])
 void main() {
 
   late NumberTriviaRepositoryImpl repository;
@@ -39,9 +36,8 @@ void main() {
   runTestOnline(Function body) {
     group('device is online', () {
       setUp(() {
-        when(mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
+        when(() => mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
       });
-
       body();
     });
   }
@@ -49,9 +45,8 @@ void main() {
   runTestOffline(Function body) {
     group('device is offline', () {
       setUp(() {
-        when(mockNetWorkInfo.isConnected).thenAnswer((_) async => false);
+        when(() => mockNetWorkInfo.isConnected).thenAnswer((_) async => false);
       });
-
       body();
     });
   }
@@ -66,13 +61,15 @@ void main() {
     test('should check if the device is connected to online', () async {
 
       // arrange
-      when(mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
+      when(() => mockRemoteDataSource.getConcreteNumberTrivia(tNumber)).thenAnswer((_) async => tNumberTriviaModel);
+      when(() => mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel)).thenAnswer((_) async => true);
+      when(() => mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
 
       // act
-      repository.getConcreteNumberTrivia(tNumber);
+      await repository.getConcreteNumberTrivia(tNumber);
 
       // assert
-      verify(mockNetWorkInfo.isConnected);
+      verify(() =>  mockNetWorkInfo.isConnected).called(1);
 
     });
 
@@ -80,13 +77,16 @@ void main() {
 
       test('should return remote data when the call to remote data source is success', () async {
         // arrange
-        when(mockRemoteDataSource.getConcreteNumberTrivia(tNumber)).thenAnswer((_) async => tNumberTriviaModel);
+
+        when(() => mockRemoteDataSource.getConcreteNumberTrivia(tNumber)).thenAnswer((_) async => tNumberTriviaModel);
+        when(() => mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel)).thenAnswer((_) async => true);
+        when(() => mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
 
         // act
         final result = await repository.getConcreteNumberTrivia(tNumber);
 
         // assert
-        verify(mockRemoteDataSource.getConcreteNumberTrivia(tNumber));
+        verify(() => mockRemoteDataSource.getConcreteNumberTrivia(tNumber));
         expect(result,const Right(tNumberTrivia));
 
       });
@@ -94,31 +94,31 @@ void main() {
 
       test('should cache the remote data when the call to remote data source is success', () async {
         // arrange
-        when(mockRemoteDataSource.getConcreteNumberTrivia(tNumber)).thenAnswer((_) async => tNumberTriviaModel);
+        when(() => mockRemoteDataSource.getConcreteNumberTrivia(tNumber)).thenAnswer((_) async => tNumberTriviaModel);
+        when(() => mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel)).thenAnswer((_) async => true);
+        when(() => mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
 
         // act
         await repository.getConcreteNumberTrivia(tNumber);
 
         // assert
-        verify(mockRemoteDataSource.getConcreteNumberTrivia(tNumber));
-        verify(mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel));
+        verify(() => mockRemoteDataSource.getConcreteNumberTrivia(tNumber));
+        verify(() => mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel));
       });
 
       test('should return server failure data when the call to remote data source is unsuccessful', () async {
         // arrange
-        when(mockRemoteDataSource.getConcreteNumberTrivia(tNumber)).thenThrow(ServerException());
+        when(() => mockRemoteDataSource.getConcreteNumberTrivia(tNumber)).thenThrow(ServerException());
 
         // act
         final result = await repository.getConcreteNumberTrivia(tNumber);
 
         // assert
-        verify(mockRemoteDataSource.getConcreteNumberTrivia(tNumber));
+        verify(() => mockRemoteDataSource.getConcreteNumberTrivia(tNumber));
         verifyNoMoreInteractions(mockLocalDataSource);
         expect(result,Left(ServerFailure()));
 
       });
-
-
     });
 
 
@@ -126,13 +126,13 @@ void main() {
 
       test('should return cache response when device is not connected to network', () async {
         // arrange
-        when(mockLocalDataSource.getLastCachedNumberTrivia()).thenAnswer((_) async => tNumberTriviaModel);
+        when(() => mockLocalDataSource.getLastCachedNumberTrivia()).thenAnswer((_) async => tNumberTriviaModel);
 
         // act
         final result = await repository.getConcreteNumberTrivia(tNumber);
 
         // assert
-        verify(mockLocalDataSource.getLastCachedNumberTrivia());
+        verify(() => mockLocalDataSource.getLastCachedNumberTrivia());
         verifyNoMoreInteractions(mockRemoteDataSource);
         expect(result,const Right(tNumberTrivia));
       });
@@ -140,13 +140,13 @@ void main() {
 
       test('should throw cache failure when call to local data source returns cache exception', () async {
         // arrange
-        when(mockLocalDataSource.getLastCachedNumberTrivia()).thenThrow(CacheException());
+        when(() => mockLocalDataSource.getLastCachedNumberTrivia()).thenThrow(CacheException());
 
         // act
         final result = await repository.getConcreteNumberTrivia(tNumber);
 
         // assert
-        verify(mockLocalDataSource.getLastCachedNumberTrivia());
+        verify(() => mockLocalDataSource.getLastCachedNumberTrivia());
         verifyNoMoreInteractions(mockRemoteDataSource);
         expect(result,Left(CacheFailure()));
 
@@ -164,13 +164,15 @@ void main() {
     test('should check if the device is connected to online', () async {
 
       // arrange
-      when(mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
+      when(() => mockRemoteDataSource.getRandomNumberTrivia()).thenAnswer((_) async => tNumberTriviaModel);
+      when(() => mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel)).thenAnswer((_) async => true);
+      when(() => mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
 
       // act
-      repository.getRandomNumberTrivia();
+      await repository.getRandomNumberTrivia();
 
       // assert
-      verify(mockNetWorkInfo.isConnected);
+      verify(() => mockNetWorkInfo.isConnected);
 
     });
 
@@ -178,13 +180,14 @@ void main() {
 
       test('should return remote data when the call to remote data source is success', () async {
         // arrange
-        when(mockRemoteDataSource.getRandomNumberTrivia()).thenAnswer((_) async => tNumberTriviaModel);
-
+        when(() => mockRemoteDataSource.getRandomNumberTrivia()).thenAnswer((_) async => tNumberTriviaModel);
+        when(() => mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel)).thenAnswer((_) async => true);
+        when(() => mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
         // act
         final result = await repository.getRandomNumberTrivia();
 
         // assert
-        verify(mockRemoteDataSource.getRandomNumberTrivia());
+        verify(() => mockRemoteDataSource.getRandomNumberTrivia());
         expect(result,const Right(tNumberTrivia));
 
       });
@@ -192,25 +195,27 @@ void main() {
 
       test('should cache the remote data when the call to remote data source is success', () async {
         // arrange
-        when(mockRemoteDataSource.getRandomNumberTrivia()).thenAnswer((_) async => tNumberTriviaModel);
-
+        when(() => mockRemoteDataSource.getRandomNumberTrivia()).thenAnswer((_) async => tNumberTriviaModel);
+        when(() => mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel)).thenAnswer((_) async => true);
+        when(() => mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
         // act
         await repository.getRandomNumberTrivia();
 
         // assert
-        verify(mockRemoteDataSource.getRandomNumberTrivia());
-        verify(mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel));
+        verify(() => mockRemoteDataSource.getRandomNumberTrivia());
+        verify(() => mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel));
       });
 
       test('should return server failure data when the call to remote data source is unsuccessful', () async {
         // arrange
-        when(mockRemoteDataSource.getRandomNumberTrivia()).thenThrow(ServerException());
-
+        when(() => mockRemoteDataSource.getRandomNumberTrivia()).thenThrow(ServerException());
+        when(() => mockLocalDataSource.cacheNumberTrivia(tNumberTriviaModel)).thenAnswer((_) async => true);
+        when(() => mockNetWorkInfo.isConnected).thenAnswer((_) async => true);
         // act
         final result = await repository.getRandomNumberTrivia();
 
         // assert
-        verify(mockRemoteDataSource.getRandomNumberTrivia());
+        verify(() => mockRemoteDataSource.getRandomNumberTrivia());
         verifyNoMoreInteractions(mockLocalDataSource);
         expect(result,Left(ServerFailure()));
 
@@ -224,13 +229,13 @@ void main() {
 
       test('should return cache response when device is not connected to network', () async {
         // arrange
-        when(mockLocalDataSource.getLastCachedNumberTrivia()).thenAnswer((_) async => tNumberTriviaModel);
+        when(() => mockLocalDataSource.getLastCachedNumberTrivia()).thenAnswer((_) async => tNumberTriviaModel);
 
         // act
         final result = await repository.getRandomNumberTrivia();
 
         // assert
-        verify(mockLocalDataSource.getLastCachedNumberTrivia());
+        verify(() => mockLocalDataSource.getLastCachedNumberTrivia());
         verifyNoMoreInteractions(mockRemoteDataSource);
         expect(result,const Right(tNumberTrivia));
       });
@@ -238,13 +243,13 @@ void main() {
 
       test('should throw cache failure when call to local data source returns cache exception', () async {
         // arrange
-        when(mockLocalDataSource.getLastCachedNumberTrivia()).thenThrow(CacheException());
+        when(() => mockLocalDataSource.getLastCachedNumberTrivia()).thenThrow(CacheException());
 
         // act
         final result = await repository.getRandomNumberTrivia();
 
         // assert
-        verify(mockLocalDataSource.getLastCachedNumberTrivia());
+        verify(() => mockLocalDataSource.getLastCachedNumberTrivia());
         verifyNoMoreInteractions(mockRemoteDataSource);
         expect(result,Left(CacheFailure()));
 

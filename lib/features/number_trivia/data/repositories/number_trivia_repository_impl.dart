@@ -32,27 +32,27 @@ class NumberTriviaRepositoryImpl implements NumberTriviaRepository {
   }
 
   Future<Either<Failure,NumberTrivia?>>? _getTrivia(Future<NumberTrivia?>? Function() getConcreteOrRandomTrivia) async {
-    final isConnected = await netWorkInfo.isConnected ?? false;
-    if (isConnected) {
-      return await getRemoteSourceData(getConcreteOrRandomTrivia);
-    } else {
-      return await getLocalDataSource(getConcreteOrRandomTrivia);
+      final isConnected = await netWorkInfo.isConnected;
+      if (isConnected) {
+        return await getRemoteSourceData(getConcreteOrRandomTrivia);
+      } else {
+        return await getLocalDataSource(getConcreteOrRandomTrivia);
+      }
     }
-  }
 
-  Future<Either<Failure, NumberTrivia?>> getLocalDataSource(Future<NumberTrivia?>? Function() getConcreteOrRandomTrivia) async {
-    try {
-      return Right(await numberTriviaLocalDataSource.getLastCachedNumberTrivia());
-    } on CacheException {
-      return Left(CacheFailure());
+    Future<Either<Failure, NumberTrivia?>> getLocalDataSource(Future<NumberTrivia?>? Function() getConcreteOrRandomTrivia) async {
+      try {
+        return Right(await numberTriviaLocalDataSource.getLastCachedNumberTrivia());
+      } on CacheException {
+        return Left(CacheFailure());
+      }
     }
-  }
 
-  Future<Either<Failure, NumberTrivia?>> getRemoteSourceData(Future<NumberTrivia?>? Function() getConcreteOrRandomTrivia) async {
-    try {
-      final triviaModel = await getConcreteOrRandomTrivia();
-      numberTriviaLocalDataSource.cacheNumberTrivia(triviaModel as NumberTriviaModel?);
-      return Right(triviaModel);
+    Future<Either<Failure, NumberTrivia?>> getRemoteSourceData(Future<NumberTrivia?>? Function() getConcreteOrRandomTrivia) async {
+      try {
+        final triviaModel = await getConcreteOrRandomTrivia();
+        numberTriviaLocalDataSource.cacheNumberTrivia(triviaModel as NumberTriviaModel?);
+        return Right(triviaModel);
     } on ServerException {
       return Left(ServerFailure());
     }
